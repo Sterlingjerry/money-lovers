@@ -1,0 +1,156 @@
+MONEY LOVERS - TEAM RESPONSIBILITIES
+Created: April 15, 2026
+
+Purpose
+This file defines who owns which files and who is responsible for which tasks.
+If a change crosses owners, coordinate before merging.
+
+==================================================
+TEAM MEMBERS
+==================================================
+- Jose: Frontend (UI/UX)
+- Simi: Backend API
+- Riad: Database
+- Sterling: Authentication & Security
+
+==================================================
+FILE OWNERSHIP (PRIMARY)
+==================================================
+Frontend
+1) Jose
+   Owns:
+   - frontend/src/index.jsx
+   - frontend/src/styles.css
+   - frontend/src/index.js
+   - frontend/public/index.html
+   - frontend/package.json (frontend dependency updates only)
+   Duties:
+   - Build and maintain login/register/dashboard UI
+   - Handle user interactions and page flow
+   - Keep layout responsive and beginner-friendly
+   - Coordinate with Simi for API payload changes
+
+2) Jose + Simi (shared)
+   Owns:
+   - frontend/src/api.js
+   Duties:
+   - Jose: frontend request usage and error handling UX
+   - Simi: endpoint path consistency and API contract alignment
+
+Backend
+3) Simi
+   Owns:
+   - backend/routes.py
+   - backend/app_factory.py
+   - backend/run_simple.py
+   - backend/requirements.txt (backend dependency updates only)
+   Duties:
+   - Create and maintain API endpoints
+   - Validate request input and return correct status codes
+   - Maintain business flow for subscriptions and payments
+   - Keep API behavior aligned with frontend needs
+
+4) Riad
+   Owns:
+   - backend/models.py
+   Duties:
+   - Maintain User, Subscription, Payment schema
+   - Manage relationships and data rules
+   - Review model-level changes for integrity and consistency
+   - Coordinate with Simi when route logic depends on schema updates
+
+5) Sterling
+   Owns (security review authority):
+   - backend/models.py (auth/security sections)
+   - backend/routes.py (auth/access checks)
+   - frontend/src/api.js (token handling checks)
+   Duties:
+   - Ensure bcrypt password hashing remains intact
+   - Verify account lockout behavior after failed logins
+   - Verify route protection and ownership-based access control
+   - Review auth/token flow for regressions
+
+==================================================
+RESPONSIBILITY BY FEATURE
+==================================================
+1) Registration/Login
+- Primary: Sterling + Simi
+- Supporting: Jose
+- Files:
+  - backend/routes.py
+  - backend/models.py
+  - frontend/src/index.jsx
+  - frontend/src/api.js
+
+2) Shared Subscriptions (create/list/member management)
+- Primary: Simi + Riad
+- Supporting: Jose
+- Files:
+  - backend/routes.py
+  - backend/models.py
+  - frontend/src/index.jsx
+
+3) Cost Splitting + Payment Status
+- Primary: Simi + Riad
+- Supporting: Jose
+- Files:
+  - backend/routes.py
+  - backend/models.py
+  - frontend/src/index.jsx
+  - frontend/src/styles.css
+
+4) Access Control and Security
+- Primary: Sterling
+- Supporting: Simi
+- Files:
+  - backend/routes.py
+  - backend/models.py
+  - frontend/src/api.js
+
+==================================================
+CHANGE RULES
+==================================================
+Rule 1
+- If you modify a file owned by someone else, tag them for review.
+
+Rule 2
+- Schema change in backend/models.py requires:
+  - Riad approval
+  - Simi confirmation that routes still work
+  - Jose confirmation if frontend payloads change
+
+Rule 3
+- Auth/security change requires Sterling review before merge.
+
+Rule 4
+- API endpoint shape change requires:
+  - Simi updates backend/routes.py
+  - Jose updates frontend/src/index.jsx usage
+
+Rule 5
+- Keep comments clear and simple for class presentation purposes.
+
+==================================================
+DAY-TO-DAY WORKFLOW
+==================================================
+Jose
+- Start in frontend/src/index.jsx and frontend/src/styles.css
+- Use frontend/src/api.js for backend calls
+
+Simi
+- Start in backend/routes.py
+- Sync with Riad if model field changes are needed
+
+Riad
+- Start in backend/models.py
+- Notify Simi and Jose after schema-affecting changes
+
+Sterling
+- Review backend/routes.py and backend/models.py after auth/security changes
+- Test login lockout, token behavior, and access restrictions
+
+==================================================
+FINAL NOTE
+==================================================
+This is the active ownership map for the simplified structure.
+If the team later adopts a different structure, update this file first.
