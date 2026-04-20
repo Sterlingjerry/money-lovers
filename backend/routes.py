@@ -233,8 +233,6 @@ def add_member(sub_id):
     if not sub:
         return jsonify({'error': 'Subscription not found'}), 404
     
-    print("JWT user_id:", user_id, "subscription creator_id:", sub.creator_id)
-    
     if sub.creator_id != user_id:
         return jsonify({'error': 'Only creator can add members'}), 403
     
