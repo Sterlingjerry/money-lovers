@@ -14,6 +14,25 @@ from models import db, User, Subscription, Payment
 api = Blueprint('api', __name__)
 limiter = Limiter(key_func=get_remote_address)
 
+def rebuild_pending_payments(subscription):
+    """Rebuild pending payments for all current members of a subscription."""
+    Payment.query.filter_by(
+        subscription_id=subscription.id,
+        status='pending'
+    ).delete()
+
+    amount_per_person = subscription.calculate_per_person_cost()
+
+    for member in subscription.members:
+        payment = Payment(
+            subscription_id=subscription.id,
+            payer_id=member.id,
+            amount=amount_per_person,
+            status='pending',
+            due_date=datetime.utcnow() + timedelta(days=30)
+        )
+        db.session.add(payment)
+
 
 # ==================== AUTHENTICATION ====================
 
@@ -21,7 +40,7 @@ limiter = Limiter(key_func=get_remote_address)
 @limiter.limit("5 per hour")
 def register():
     """Register a new user"""
-    data = request.get_json()
+    data = request.get_json() or {}
     
     if not all([data.get('email'), data.get('username'), data.get('password')]):
         return jsonify({'error': 'Missing required fields'}), 400
@@ -53,7 +72,7 @@ def register():
 @limiter.limit("10 per minute")
 def login():
     """Login user and return JWT tokens"""
-    data = request.get_json()
+    data = request.get_json() or {}
     
     if not all([data.get('email'), data.get('password')]):
         return jsonify({'error': 'Email and password required'}), 400
@@ -77,8 +96,8 @@ def login():
     user.reset_failed_login()
     db.session.commit()
     
-    access_token = create_access_token(identity=user.id)
-    refresh_token = create_refresh_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
+    refresh_token = create_refresh_token(identity=str(user.id))
     
     return jsonify({
         'access_token': access_token,
@@ -88,11 +107,12 @@ def login():
 
 
 @api.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
+@jwt_required(refresh=True) 
 def refresh():
     """Get new access token"""
-    current_user_id = get_jwt_identity()
-    access_token = create_access_token(identity=current_user_id)
+    current_user_id = int(get_jwt_identity())
+    access_token = create_access_token(identity=str(current_user_id))
+
     return jsonify({'access_token': access_token}), 200
 
 
@@ -100,7 +120,7 @@ def refresh():
 @jwt_required()
 def get_profile():
     """Get current user profile"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     
     if not user:
@@ -115,45 +135,53 @@ def get_profile():
 @jwt_required()
 def create_subscription():
     """Create a new subscription"""
-    user_id = get_jwt_identity()
-    data = request.get_json()
+    user_id = int(get_jwt_identity())
+    data = request.get_json() or {}
     
-    if not all([data.get('name'), data.get('cost')]):
+    if not data.get('name') or data.get('cost') is None:
         return jsonify({'error': 'Name and cost required'}), 400
+
+    try:
+        cost = float(data['cost'])
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Cost must be a valid number'}), 400
+
+    if cost <= 0:
+        return jsonify({'error': 'Cost must be greater than 0'}), 400
+
+    try:
+        billing_date = int(data.get('billing_date', 1))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Billing date must be a valid integer'}), 400
+
+    if billing_date < 1 or billing_date > 31:
+        return jsonify({'error': 'Billing date must be between 1 and 31'}), 400
     
     try:
         sub = Subscription(
             name=data['name'],
             description=data.get('description', ''),
-            cost=float(data['cost']),
-            billing_date=int(data.get('billing_date', 1)),
+            cost=cost,
+            billing_date=billing_date,
             creator_id=user_id
-        )
-        
+    )
+            
         creator = User.query.get(user_id)
         sub.add_member(creator)
-        
-        # Add other members
+            
+            # Add other members
         for member_id in data.get('members', []):
             if member_id != user_id:
                 member = User.query.get(member_id)
                 if member:
                     sub.add_member(member)
-        
+            
         db.session.add(sub)
         db.session.flush()
-        
+            
         # Create payments for all members
-        for member in sub.members:
-            payment = Payment(
-                subscription_id=sub.id,
-                payer_id=member.id,
-                amount=sub.calculate_per_person_cost(),
-                status='pending',
-                due_date=datetime.utcnow() + timedelta(days=30)
-            )
-            db.session.add(payment)
-        
+        rebuild_pending_payments(sub)
+            
         db.session.commit()
         return jsonify({'message': 'Subscription created', 'subscription': sub.to_dict()}), 201
     
@@ -166,7 +194,7 @@ def create_subscription():
 @jwt_required()
 def get_subscriptions():
     """Get user's subscriptions"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     
     if not user:
@@ -180,7 +208,7 @@ def get_subscriptions():
 @jwt_required()
 def get_subscription(sub_id):
     """Get specific subscription"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     sub = Subscription.query.get(sub_id)
     
     if not sub:
@@ -199,16 +227,18 @@ def get_subscription(sub_id):
 @jwt_required()
 def add_member(sub_id):
     """Add member to subscription"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     sub = Subscription.query.get(sub_id)
     
     if not sub:
         return jsonify({'error': 'Subscription not found'}), 404
     
+    print("JWT user_id:", user_id, "subscription creator_id:", sub.creator_id)
+    
     if sub.creator_id != user_id:
         return jsonify({'error': 'Only creator can add members'}), 403
     
-    data = request.get_json()
+    data = request.get_json() or {}
     member_id = data.get('user_id')
     
     if not member_id:
@@ -219,17 +249,13 @@ def add_member(sub_id):
         if not member:
             return jsonify({'error': 'User not found'}), 404
         
+        if member in sub.members:
+            return jsonify({'error': 'User is already a member of this subscription'}), 400
+        
         sub.add_member(member)
         
-        # Create payment for new member
-        payment = Payment(
-            subscription_id=sub.id,
-            payer_id=member.id,
-            amount=sub.calculate_per_person_cost(),
-            status='pending',
-            due_date=datetime.utcnow() + timedelta(days=30)
-        )
-        db.session.add(payment)
+        # # Recalculate payments for all members
+        rebuild_pending_payments(sub)
         db.session.commit()
         
         return jsonify({'message': 'Member added', 'subscription': sub.to_dict()}), 200
@@ -243,7 +269,7 @@ def add_member(sub_id):
 @jwt_required()
 def remove_member(sub_id, member_id):
     """Remove member from subscription"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     sub = Subscription.query.get(sub_id)
     
     if not sub:
@@ -254,12 +280,21 @@ def remove_member(sub_id, member_id):
     
     try:
         member = User.query.get(member_id)
-        if member:
-            sub.remove_member(member)
-        
+        if not member:
+            return jsonify({'error': 'User not found'}), 404
+
+        if member_id == sub.creator_id:
+            return jsonify({'error': 'Cannot remove the creator from the subscription'}), 400
+
+        if member not in sub.members:
+            return jsonify({'error': 'User is not a member of this subscription'}), 400
+
+        sub.remove_member(member)
+        rebuild_pending_payments(sub)
+
         db.session.commit()
         return jsonify({'message': 'Member removed', 'subscription': sub.to_dict()}), 200
-    
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -271,7 +306,7 @@ def remove_member(sub_id, member_id):
 @jwt_required()
 def get_payments():
     """Get user's payments"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     payments = Payment.query.filter_by(payer_id=user_id).all()
     return jsonify({'payments': [p.to_dict() for p in payments]}), 200
 
@@ -280,7 +315,7 @@ def get_payments():
 @jwt_required()
 def get_payment(payment_id):
     """Get specific payment"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     payment = Payment.query.get(payment_id)
     
     if not payment:
@@ -299,7 +334,7 @@ def get_payment(payment_id):
 @jwt_required()
 def mark_payment_paid(payment_id):
     """Mark payment as completed"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     payment = Payment.query.get(payment_id)
     
     if not payment:
@@ -322,7 +357,7 @@ def mark_payment_paid(payment_id):
 @jwt_required()
 def get_payment_summary(sub_id):
     """Get payment summary for subscription"""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     sub = Subscription.query.get(sub_id)
     
     if not sub:
