@@ -4,6 +4,7 @@ All models in one file - easier to understand relationships
 """
 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import CheckConstraint, Index
 from datetime import datetime, timedelta
 import bcrypt
 
@@ -25,6 +26,10 @@ class User(db.Model):
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
     last_login = db.Column(db.DateTime, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint('failed_login_attempts >= 0', name='ck_users_failed_login_non_negative'),
+    )
     
     # Relationships
     subscriptions = db.relationship('Subscription', backref='creator', lazy=True, foreign_keys='Subscription.creator_id')
@@ -92,9 +97,14 @@ class Subscription(db.Model):
     billing_date = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # SECURITY: Creator is the only one who can modify
-    creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+
+    __table_args__ = (
+        CheckConstraint('cost > 0', name='ck_subscriptions_cost_positive'),
+        CheckConstraint('billing_date BETWEEN 1 AND 31', name='ck_subscriptions_billing_date_range'),
+    )
     
     # Relationships
     members = db.relationship(
@@ -151,14 +161,23 @@ class Payment(db.Model):
     __tablename__ = 'payments'
     
     id = db.Column(db.Integer, primary_key=True)
-    subscription_id = db.Column(db.Integer, db.ForeignKey('subscriptions.id'), nullable=False)
-    payer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    subscription_id = db.Column(db.Integer, db.ForeignKey('subscriptions.id'), nullable=False, index=True)
+    payer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     amount = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, completed, overdue
+    status = db.Column(db.String(20), default='pending', index=True)  # pending, completed, overdue
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    due_date = db.Column(db.DateTime)
+    due_date = db.Column(db.DateTime, index=True)
     paid_date = db.Column(db.DateTime, nullable=True)
     payment_method = db.Column(db.String(50))
+
+    __table_args__ = (
+        CheckConstraint('amount >= 0', name='ck_payments_amount_non_negative'),
+        CheckConstraint(
+            "status IN ('pending', 'completed', 'overdue')",
+            name='ck_payments_status_valid',
+        ),
+        Index('ix_payments_subscription_status', 'subscription_id', 'status'),
+    )
     
     def mark_as_paid(self):
         self.status = 'completed'
