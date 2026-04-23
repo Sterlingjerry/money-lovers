@@ -1,6 +1,6 @@
-/**
- * Simplified CSS - All styling in one file
- */
+/* styles.css - updated UI */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 * {
   margin: 0;
@@ -9,33 +9,37 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  background-color: #f9fafb;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f0f4ff;
   color: #111827;
 }
 
 /* ==================== AUTH PAGES ==================== */
 .auth-container {
-  max-width: 400px;
-  margin: 100px auto;
-  padding: 2rem;
+  max-width: 420px;
+  margin: 80px auto;
+  padding: 2.5rem;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(37, 99, 235, 0.1);
+  border: 1px solid #e0e7ff;
 }
 
 .auth-container h1 {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: #2563eb;
   font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .auth-container h2 {
   text-align: center;
   margin-bottom: 1.5rem;
   color: #374151;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .form-group {
@@ -44,16 +48,19 @@ body {
 
 .form-group input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #f9fafb;
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #2563eb;
+  background: white;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -64,38 +71,47 @@ body {
 
 button {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.8rem;
   background-color: #2563eb;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   font-weight: 600;
+  font-size: 0.95rem;
+  font-family: inherit;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, transform 0.1s;
 }
 
 button:hover:not(:disabled) {
   background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 button:disabled {
-  background-color: #9ca3af;
+  background-color: #93c5fd;
   cursor: not-allowed;
 }
 
 .error {
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   margin-bottom: 1rem;
-  background-color: #fee2e2;
-  color: #991b1b;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  border: 1px solid #fecaca;
 }
 
 .auth-container p {
   text-align: center;
   margin-top: 1.5rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
 .auth-container a {
@@ -105,24 +121,31 @@ button:disabled {
   cursor: pointer;
 }
 
+.auth-container a:hover {
+  text-decoration: underline;
+}
+
 /* ==================== DASHBOARD ==================== */
 .dashboard {
   min-height: 100vh;
-  background-color: #f9fafb;
+  background-color: #f0f4ff;
 }
 
 .header {
   background: white;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem 2rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 2px solid #e0e7ff;
 }
 
 .header h1 {
   color: #2563eb;
-  font-size: 1.8rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .user-section {
@@ -130,12 +153,16 @@ button:disabled {
   align-items: center;
   gap: 1rem;
   font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
 }
 
 .logout-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.2rem;
   background-color: #ef4444;
   width: auto;
+  font-size: 0.875rem;
+  border-radius: 8px;
 }
 
 .logout-btn:hover {
@@ -146,7 +173,7 @@ button:disabled {
   display: grid;
   grid-template-columns: 1fr 380px;
   gap: 1.5rem;
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -160,99 +187,119 @@ button:disabled {
 .create-form {
   background: white;
   padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e0e7ff;
 }
 
 .create-form h3 {
   margin-bottom: 1rem;
   color: #111827;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .create-form input {
   width: 100%;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.75rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: #f9fafb;
+  transition: border-color 0.2s;
 }
 
 .create-form input:focus {
   outline: none;
   border-color: #2563eb;
+  background: white;
 }
 
 .create-form button {
   background-color: #10b981;
+  border-radius: 10px;
 }
 
-.create-form button:hover {
+.create-form button:hover:not(:disabled) {
   background-color: #059669;
 }
 
 .subscriptions-list {
   background: white;
   padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e0e7ff;
 }
 
 .subscriptions-list h3 {
   margin-bottom: 1rem;
   color: #111827;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .subscription-card {
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
+  background: #fafafa;
 }
 
 .subscription-card:hover {
   border-color: #2563eb;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  background: white;
+  transform: translateY(-1px);
 }
 
 .subscription-card.active {
   border-color: #2563eb;
-  background-color: #f0f9ff;
+  background-color: #eff6ff;
 }
 
 .subscription-card h4 {
-  color: #2563eb;
-  margin-bottom: 0.5rem;
+  color: #1d4ed8;
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .subscription-card p {
   color: #6b7280;
-  font-size: 0.9rem;
-  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
 }
 
 .sub-info {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
 }
 
 .view-btn {
   width: 100%;
   padding: 0.5rem;
   background-color: #2563eb;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  border-radius: 8px;
 }
 
 /* ==================== PAYMENT SUMMARY ==================== */
 .side-panel {
   background: white;
   padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e0e7ff;
   height: fit-content;
   position: sticky;
   top: 1.5rem;
@@ -261,20 +308,23 @@ button:disabled {
 .side-panel h3 {
   margin-bottom: 1rem;
   color: #111827;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .summary-box {
-  background-color: #f9fafb;
+  background-color: #f0f4ff;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 10px;
   margin-bottom: 1rem;
+  border: 1px solid #e0e7ff;
 }
 
 .stat {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.875rem;
 }
 
 .stat span:first-child {
@@ -299,22 +349,23 @@ button:disabled {
 }
 
 .progress-bar {
-  height: 10px;
+  height: 8px;
   background-color: #e5e7eb;
-  border-radius: 4px;
+  border-radius: 99px;
   overflow: hidden;
   margin-bottom: 1rem;
 }
 
 .progress-fill {
   height: 100%;
-  background-color: #10b981;
+  background: linear-gradient(90deg, #10b981, #059669);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  border-radius: 99px;
 }
 
 .payment-table {
@@ -325,16 +376,17 @@ button:disabled {
 }
 
 .payment-table th {
-  background-color: #f3f4f6;
-  padding: 0.5rem;
+  background-color: #f0f4ff;
+  padding: 0.5rem 0.75rem;
   text-align: left;
   font-weight: 600;
-  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+  border-bottom: 1px solid #e0e7ff;
 }
 
 .payment-table td {
-  padding: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
 .status-pending {
@@ -350,9 +402,10 @@ button:disabled {
 .close-btn {
   width: 100%;
   background-color: #6b7280;
+  border-radius: 8px;
 }
 
-.close-btn:hover {
+.close-btn:hover:not(:disabled) {
   background-color: #4b5563;
 }
 
@@ -360,6 +413,7 @@ button:disabled {
 @media (max-width: 768px) {
   .content {
     grid-template-columns: 1fr;
+    padding: 1rem;
   }
 
   .side-panel {
@@ -371,5 +425,6 @@ button:disabled {
     flex-direction: column;
     gap: 1rem;
     text-align: center;
+    padding: 1rem;
   }
 }
