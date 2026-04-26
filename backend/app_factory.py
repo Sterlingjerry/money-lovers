@@ -14,23 +14,33 @@ class Config:
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'jwt-key-change-in-production')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    DEBUG = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
 
 
 # Create Flask app
 def create_app():
     from flask import Flask
     from flask_cors import CORS
+    from flask_migrate import Migrate
     from flask_jwt_extended import JWTManager
     from models import db
-    from routes import api
+    from routes import api, limiter
     
     app = Flask(__name__)
     app.config.from_object(Config)
+    migrate = Migrate()
     
     # Initialize extensions
     db.init_app(app)
-    CORS(app, origins=['http://localhost:3000'])
+    migrate.init_app(app, db)
+    allowed_origins = [
+        origin.strip()
+        for origin in os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+        if origin.strip()
+    ]
+    CORS(app, origins=allowed_origins)
     JWTManager(app)
+    limiter.init_app(app)
     
     # Register routes
     app.register_blueprint(api, url_prefix='/api')

@@ -50,8 +50,12 @@ class User(db.Model):
             return True
         return False
     
-    def lock_account(self, minutes=15):
-        """Lock account after failed attempts"""
+    def lock_account(self, minutes=None):
+        """Lock account after failed attempts with escalating duration."""
+        if minutes is None:
+            base_minutes = 15
+            extra_attempts = max(0, self.failed_login_attempts - 5)
+            minutes = min(120, base_minutes + (extra_attempts * 5))
         self.locked_until = datetime.utcnow() + timedelta(minutes=minutes)
     
     def increment_failed_login(self):

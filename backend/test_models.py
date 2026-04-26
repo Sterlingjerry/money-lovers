@@ -65,6 +65,23 @@ class TestUser:
         assert u.locked_until is None
         assert u.is_locked() is False
 
+    def test_lockout_duration_escalates_with_repeated_abuse(self, session):
+        u = User(email='a@b.com', username='alice')
+        u.set_password('whatever123')
+        session.add(u); session.commit()
+
+        for _ in range(5):
+            u.increment_failed_login()
+        first_lock_until = u.locked_until
+
+        # Simulate waiting out the first lock without successful login reset.
+        u.locked_until = datetime.utcnow() - timedelta(minutes=1)
+        u.increment_failed_login()
+
+        assert u.failed_login_attempts == 6
+        assert u.locked_until is not None
+        assert u.locked_until > first_lock_until
+
     def test_to_dict_excludes_password(self, session):
         u = User(email='a@b.com', username='alice')
         u.set_password('whatever123')
