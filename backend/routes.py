@@ -14,6 +14,17 @@ from models import db, User, Subscription, Payment
 api = Blueprint('api', __name__)
 limiter = Limiter(key_func=get_remote_address)
 
+
+def get_current_user():
+    user_id = int(get_jwt_identity())
+    return User.query.get(user_id)
+
+
+def has_subscription_access(subscription, user_id):
+    is_member = any(member.id == user_id for member in subscription.members)
+    is_creator = subscription.creator_id == user_id
+    return is_member or is_creator
+
 def rebuild_pending_payments(subscription):
     """Rebuild pending payments for all current members of a subscription."""
     Payment.query.filter_by(
@@ -32,6 +43,19 @@ def rebuild_pending_payments(subscription):
             due_date=datetime.utcnow() + timedelta(days=30)
         )
         db.session.add(payment)
+
+
+def serialize_subscription(subscription):
+    payload = subscription.to_dict()
+    payload['members'] = [
+        {
+            'id': member.id,
+            'username': member.username,
+            'email': member.email,
+        }
+        for member in subscription.members
+    ]
+    return payload
 
 
 # ==================== AUTHENTICATION ====================
@@ -69,7 +93,7 @@ def register():
 
 
 @api.route('/login', methods=['POST'])
-@limiter.limit("10 per minute")
+@limiter.limit("5 per minute")
 def login():
     """Login user and return JWT tokens"""
     data = request.get_json() or {}
@@ -89,7 +113,8 @@ def login():
             user.increment_failed_login()
             db.session.commit()
             if user.is_locked():
-                return {'error': 'Too many failed attempts. Account locked for 15 minutes'}, 429
+                remaining = (user.locked_until - datetime.utcnow()).total_seconds() / 60
+                return {'error': f'Too many failed attempts. Account locked for {max(1, int(remaining))} minutes'}, 429
         return jsonify({'error': 'Invalid email or password'}), 401
     
     # Reset failed attempts on success
@@ -120,13 +145,44 @@ def refresh():
 @jwt_required()
 def get_profile():
     """Get current user profile"""
-    user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
+    user = get_current_user()
     
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
     return jsonify(user.to_dict()), 200
+
+
+@api.route('/users/search', methods=['GET'])
+@jwt_required()
+def search_users():
+    """Search users for member invites."""
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    query = (request.args.get('query') or '').strip()
+    if len(query) < 2:
+        return jsonify({'users': []}), 200
+
+    users = (
+        User.query.filter(
+            (User.username.ilike(f'%{query}%')) | (User.email.ilike(f'%{query}%'))
+        )
+        .filter(User.id != current_user.id)
+        .order_by(User.username.asc())
+        .limit(10)
+        .all()
+    )
+
+    return jsonify(
+        {
+            'users': [
+                {'id': user.id, 'username': user.username, 'email': user.email}
+                for user in users
+            ]
+        }
+    ), 200
 
 
 # ==================== SUBSCRIPTIONS ====================
@@ -135,7 +191,11 @@ def get_profile():
 @jwt_required()
 def create_subscription():
     """Create a new subscription"""
-    user_id = int(get_jwt_identity())
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({'error': 'User not found'}), 404
+
+    user_id = current_user.id
     data = request.get_json() or {}
     
     if not data.get('name') or data.get('cost') is None:
@@ -164,26 +224,24 @@ def create_subscription():
             cost=cost,
             billing_date=billing_date,
             creator_id=user_id
-    )
-            
-        creator = User.query.get(user_id)
-        sub.add_member(creator)
-            
-            # Add other members
+        )
+
+        sub.add_member(current_user)
+
         for member_id in data.get('members', []):
             if member_id != user_id:
                 member = User.query.get(member_id)
                 if member:
                     sub.add_member(member)
-            
+
         db.session.add(sub)
         db.session.flush()
-            
+
         # Create payments for all members
         rebuild_pending_payments(sub)
-            
+
         db.session.commit()
-        return jsonify({'message': 'Subscription created', 'subscription': sub.to_dict()}), 201
+        return jsonify({'message': 'Subscription created', 'subscription': serialize_subscription(sub)}), 201
     
     except Exception as e:
         db.session.rollback()
@@ -194,14 +252,13 @@ def create_subscription():
 @jwt_required()
 def get_subscriptions():
     """Get user's subscriptions"""
-    user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
+    user = get_current_user()
     
     if not user:
         return jsonify({'error': 'User not found'}), 404
     
     subs = user.shared_subscriptions
-    return jsonify({'subscriptions': [s.to_dict() for s in subs]}), 200
+    return jsonify({'subscriptions': [serialize_subscription(s) for s in subs]}), 200
 
 
 @api.route('/subscriptions/<int:sub_id>', methods=['GET'])
@@ -214,13 +271,82 @@ def get_subscription(sub_id):
     if not sub:
         return jsonify({'error': 'Subscription not found'}), 404
     
-    is_member = any(m.id == user_id for m in sub.members)
-    is_creator = sub.creator_id == user_id
-    
-    if not (is_member or is_creator):
+    if not has_subscription_access(sub, user_id):
         return jsonify({'error': 'Access denied'}), 403
     
-    return jsonify(sub.to_dict()), 200
+    return jsonify(serialize_subscription(sub)), 200
+
+
+@api.route('/subscriptions/<int:sub_id>', methods=['PUT'])
+@jwt_required()
+def update_subscription(sub_id):
+    """Update subscription metadata."""
+    user_id = int(get_jwt_identity())
+    sub = Subscription.query.get(sub_id)
+
+    if not sub:
+        return jsonify({'error': 'Subscription not found'}), 404
+
+    if sub.creator_id != user_id:
+        return jsonify({'error': 'Only creator can update subscription'}), 403
+
+    data = request.get_json() or {}
+
+    if 'name' in data:
+        if not data.get('name'):
+            return jsonify({'error': 'Name cannot be empty'}), 400
+        sub.name = data['name']
+
+    if 'description' in data:
+        sub.description = data.get('description', '')
+
+    if 'cost' in data:
+        try:
+            cost = float(data['cost'])
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Cost must be a valid number'}), 400
+        if cost <= 0:
+            return jsonify({'error': 'Cost must be greater than 0'}), 400
+        sub.cost = cost
+
+    if 'billing_date' in data:
+        try:
+            billing_date = int(data['billing_date'])
+        except (TypeError, ValueError):
+            return jsonify({'error': 'Billing date must be a valid integer'}), 400
+        if billing_date < 1 or billing_date > 31:
+            return jsonify({'error': 'Billing date must be between 1 and 31'}), 400
+        sub.billing_date = billing_date
+
+    try:
+        rebuild_pending_payments(sub)
+        db.session.commit()
+        return jsonify({'message': 'Subscription updated', 'subscription': serialize_subscription(sub)}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@api.route('/subscriptions/<int:sub_id>', methods=['DELETE'])
+@jwt_required()
+def delete_subscription(sub_id):
+    """Delete a subscription and related payments."""
+    user_id = int(get_jwt_identity())
+    sub = Subscription.query.get(sub_id)
+
+    if not sub:
+        return jsonify({'error': 'Subscription not found'}), 404
+
+    if sub.creator_id != user_id:
+        return jsonify({'error': 'Only creator can delete subscription'}), 403
+
+    try:
+        db.session.delete(sub)
+        db.session.commit()
+        return jsonify({'message': 'Subscription deleted'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
 @api.route('/subscriptions/<int:sub_id>/members', methods=['POST'])
@@ -256,7 +382,7 @@ def add_member(sub_id):
         rebuild_pending_payments(sub)
         db.session.commit()
         
-        return jsonify({'message': 'Member added', 'subscription': sub.to_dict()}), 200
+        return jsonify({'message': 'Member added', 'subscription': serialize_subscription(sub)}), 200
     
     except Exception as e:
         db.session.rollback()
@@ -291,7 +417,7 @@ def remove_member(sub_id, member_id):
         rebuild_pending_payments(sub)
 
         db.session.commit()
-        return jsonify({'message': 'Member removed', 'subscription': sub.to_dict()}), 200
+        return jsonify({'message': 'Member removed', 'subscription': serialize_subscription(sub)}), 200
 
     except Exception as e:
         db.session.rollback()
@@ -361,10 +487,7 @@ def get_payment_summary(sub_id):
     if not sub:
         return jsonify({'error': 'Subscription not found'}), 404
     
-    is_member = any(m.id == user_id for m in sub.members)
-    is_creator = sub.creator_id == user_id
-    
-    if not (is_member or is_creator):
+    if not has_subscription_access(sub, user_id):
         return jsonify({'error': 'Access denied'}), 403
     
     payments = Payment.query.filter_by(subscription_id=sub_id).all()
