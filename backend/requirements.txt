@@ -10,7 +10,7 @@ Flask-Migrate==4.0.5
 
 # Database
 SQLAlchemy==2.0.23
-psycopg2-binary==2.9.9  # PostgreSQL adapter
+psycopg[binary]==3.3.3  # PostgreSQL adapter
 
 # Security & Hashing
 bcrypt==4.1.1
