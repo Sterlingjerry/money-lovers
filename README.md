@@ -15,8 +15,6 @@ Money Lovers is a full-stack subscription sharing app for tracking shared plans,
 
 - `frontend/` - React app
 - `backend/` - Flask API, database models, and routes
-- `DEPENDENCIES.md` - install and run notes for both stacks
-- `TEAM_RESPONSIBILITIES.txt` - team ownership notes
 
 ## Requirements
 
@@ -27,7 +25,27 @@ Money Lovers is a full-stack subscription sharing app for tracking shared plans,
 
 ## Optional PostgreSQL Setup
 
-This repo is set up to run locally with SQLite on one laptop by default. If your instructor later wants a shared PostgreSQL database, you can switch to a PostgreSQL `DATABASE_URL` and install the matching driver before starting the backend.
+This repo is set up to run locally with SQLite on one laptop by default.
+
+If you wanted to use PostgreSQL instead, the code already supports it through `DATABASE_URL` in `backend/app_factory.py`. To use it, you would need to point `DATABASE_URL` at a PostgreSQL database and install the matching PostgreSQL driver in the backend environment before starting the app.
+
+For this class version, we are still using the local SQLite database on each individual laptop.
+
+## Demo / Test Accounts
+
+You can create demo accounts and a sample subscription by running this from the `backend/` folder:
+
+```powershell
+python seed_demo_data.py
+```
+
+Demo logins:
+
+- `alice@example.com` / `password123`
+- `bob@example.com` / `password123`
+- `carol@example.com` / `password123`
+
+The script also creates a sample shared subscription named `Netflix Family` so you can demo adding members and splitting costs.
 
 ## Setup
 
