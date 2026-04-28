@@ -18,10 +18,9 @@ Money Lovers is a full-stack subscription sharing app for tracking shared plans,
 
 ## Requirements
 
-- Node.js and npm
 - Python 3.11+
-- A single laptop for running the app locally
-- No shared database server required yet
+- Node.js and npm
+- No shared database server required
 
 ## Optional PostgreSQL Setup
 
@@ -33,19 +32,32 @@ For this class version, we are still using the local SQLite database on each ind
 
 ## Demo / Test Accounts
 
-You can create demo accounts and a sample subscription by running this from the `backend/` folder:
+To quickly set up demo accounts and a sample subscription, run this from the `backend/` folder:
 
 ```powershell
-python seed_demo_data.py
+python test_accounts.py
 ```
 
-Demo logins:
+This script creates three test users and a shared Netflix Family subscription with all three users as members. Output will show:
 
-- `alice@example.com` / `password123`
-- `bob@example.com` / `password123`
-- `carol@example.com` / `password123`
+```
+Demo data ready.
+Users:
+- alice / alice@example.com / password123
+- bob / bob@example.com / password123
+- carol / carol@example.com / password123
+Subscription: Netflix Family
+```
 
-The script also creates a sample shared subscription named `Netflix Family` so you can demo adding members and splitting costs.
+**How to use the demo accounts:**
+
+1. Start the backend: `python run_simple.py`
+2. Start the frontend: `npm start` (from the `frontend/` folder)
+3. Log in using any of the test accounts above with email and password
+4. The Netflix Family subscription is already created with all three users
+5. Try adding/removing members, managing costs, and splitting payments
+
+The test accounts will persist in your local SQLite database (`backend/instance/money_lovers.db`). You can re-run `test_accounts.py` anytime without error—it checks if accounts already exist before creating them.
 
 ## Setup
 
