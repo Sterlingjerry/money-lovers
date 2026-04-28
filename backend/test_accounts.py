@@ -28,6 +28,9 @@ DEMO_USERS = [
 def get_or_create_user(email, username, password):
     user = User.query.filter_by(email=email).first()
     if user:
+        user.username = username
+        user.set_password(password)
+        user.reset_failed_login()
         return user, False
 
     user = User(email=email, username=username)

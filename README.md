@@ -18,13 +18,7 @@ Money Lovers is a full-stack subscription sharing app for tracking shared plans,
 
 ## Requirements
 
-- Python 3.11+
-- Node.js and npm
-- No shared database server required
-
-## Optional PostgreSQL Setup
-
-This repo is set up to run locally with SQLite on one laptop by default.
+- Python 3.11+e laptop by default.
 
 If you wanted to use PostgreSQL instead, the code already supports it through `DATABASE_URL` in `backend/app_factory.py`. To use it, you would need to point `DATABASE_URL` at a PostgreSQL database and install the matching PostgreSQL driver in the backend environment before starting the app.
 

@@ -35,7 +35,9 @@ def create_app():
     migrate.init_app(app, db)
     allowed_origins = [
         origin.strip()
-        for origin in os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+        for origin in os.environ.get(
+            'ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:3001'
+        ).split(',')
         if origin.strip()
     ]
     CORS(app, origins=allowed_origins)
