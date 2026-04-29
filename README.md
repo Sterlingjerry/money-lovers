@@ -61,13 +61,21 @@ Install Python dependencies:
 
 ```powershell
 cd backend
+python -m venv venv
+source venv/bin/activate   # macOS/Linux
+pip install -r requirements.txt
 pip install -r requirements.txt
 ```
 
-The backend uses a local SQLite database on your laptop by default:
+The backend uses a local SQLite database on your laptop by default.
 
-```powershell
+Optional (to explicitly set SQLite):
+```
+Windows PowerShell:
 $env:DATABASE_URL='sqlite:///money_lovers.db'
+
+macOS/Linux:
+export DATABASE_URL=sqlite:///money_lovers.db
 ```
 
 If `DATABASE_URL` is not set yet, the app still runs with the local SQLite file on one laptop.
@@ -127,4 +135,4 @@ npm test -- --watchAll=false --passWithNoTests
 
 - If you can only see accounts created on your own laptop, that is expected for this version because the database is local to that laptop.
 - If the backend fails to start, make sure you are running from the `backend/` folder and that the local SQLite file is writable.
-- If the frontend cannot connect, confirm the backend is running on port 5000.
+- If the frontend cannot connect, confirm the backend is running on the same port configured in frontend/src/api.js (default 5000; some local setups may use 5001 or 5002).
